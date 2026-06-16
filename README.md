@@ -1,33 +1,62 @@
-# traveltime-maps
+# pune-traveltime-maps
 
-## The idea: Create maps that visualize travel time rather than geographic distance
+## Visualizing Pune through travel time rather than geographic distance
 
-Almost every map today is drawn based on geographic distance. However, given the multitude of transporation options (Walk, Bike, Uber, Bird, Bus, Train) available in urban environments today, we often mentally visualize destinations based on the amount of time it will take to get there. This project is an attempt to visualize these mental maps that our brains create.
+Adapted from [carstonhernke/traveltime-maps](https://github.com/carstonhernke/traveltime-maps) 
+for Pune, India.
 
-Here is the approach:
-1. Start with a normal (geographic-distance-based) map of Minneapolis (using get_map.py):
-![original minneapolis map](img/original_map_minneapolis.png)
+## Original map of Pune
+![original pune map](img/original_map_pune.png)
 
-2. Create 64 coordinates on this map, arranged in a grid (generate_coordinates.py does this)
+## Travel-time distorted map of Pune
+![distorted pune map](img/distorted_map_pune.png)
+
+## Coordinate grid (geographic)
 ![original coordinates](img/original_coordinates.png)
 
-3. Find the amount of time that it takes to get from each coordinate to every other coordinate, using OSRM
-- 64<sup>2</sup> = 4096 routes. Unfortunately this exceeds the Google Maps API free requirements, so I found the travel time locally using OSRM (based on openstreetmap networks).
+## Coordinate grid (travel-time distorted)
+![new coordinates](img/new_coordinates.png)
 
-4. We now have a 64x64 matrix of travel times between coordinates. This can't really be visualized in a great way, so we have to do some dimensionality reduction. I used [Multidimensional Scaling](https://en.wikipedia.org/wiki/Multidimensional_scaling#Classical_multidimensional_scaling), also known as _Principle Coordinates Analysis_, to place each coordinate in 2-dimensional space while preserving the distances between each as well as possible. This results in the following distribution of points, where locations that can be reached more quickly are closer to each other (colors preserved from the image in step 1):
-![distorted coordinates](img/new_coordinates.png)
+## How it works
 
-5. These travel time-distorted coordinates aren't very useful on their own, so we need to apply the same distortion to our original map. This can be thought of as a [Rubber Sheeting Transformation](http://www.corrmap.com/features/rubber-sheeting_transformation.php). However, because my original map is a png with no coordinate system information, I used an approach from computer vision, not geography. Specifically, I used the *remap()* function from the [OpenCV](https://docs.opencv.org/2.4/modules/imgproc/doc/geometric_transformations.html?highlight=remap) Library to manipulate the image based on the new coordinates, and interpolate pixels that didn't exist in the original.
+1. **get_map.py** — Downloads OpenStreetMap tiles centered on Pune 
+   (18.54°N, 73.87°E) and stitches them into a single base map image.
 
-6. This results in the following image:
-![new minneapolis map](img/distorted_map_minneapolis.png)
+2. **generate_coordinates.py** — Creates a 9×9 grid of 81 coordinates 
+   covering Pune's bounding box (18.42°N–18.62°N, 73.75°E–73.97°E).
 
-As you can see, there are big black gaps in the map around the middle of highways (specifically the I94/I35W interchange). This is likely because travel time between two points on the highway in a car is close to zero, which distorts the map.
+3. **get_travel_times.py** — Queries a local OSRM routing engine for 
+   driving time between every pair of coordinates (81×81 = 6561 routes).
 
-There is obviously tons of room for improvement. Here are some ideas:
-1. It looks like something may be off with the coordinates, because the coordinate grid appears to be rotated clockwise while the final map appears to be rotated counter-clockwise
-2. It might be better to use vector-based maps to begin with and then produce a raster map at the very end
-3. Quality would be improved with more reference points, but complexity increases exponentially
-4. OSRM only considers car and bike routes. Given the multitude of transporation options available today, it would be important to consider other options like walking, dockless scooters, public transit, etc.
+4. **mds.py** — Applies Multidimensional Scaling (MDS) to the travel 
+   time matrix to place each coordinate in 2D space where distance 
+   represents travel time rather than geographic distance. Uses 
+   Procrustes alignment to preserve north-south-east-west orientation.
 
-This project uses a number of open-source libraries and technologies, including [openstreetmap](https://www.openstreetmap.org/), [Open Source Routing Machine (OSRM)](http://project-osrm.org/), [numpy](http://www.numpy.org/), and [OpenCV](https://opencv.org/). Map tiles are generated using [Mapbox](https://www.mapbox.com/).
+5. **distort_map.py** — Uses OpenCV's remap() function to warp the 
+   original map image based on the MDS-distorted coordinates, using 
+   cubic interpolation to fill pixels between control points.
+
+## Key observations from the Pune distorted map
+
+- **City center (Pune Railway Station, Shivajinagar)** expands outward — 
+  it is highly connected by road and reachable quickly from many directions.
+- **Koregaon Park and Yerawada (east)** are pulled closer to center — 
+  good road connectivity via the river corridor.
+- **Khadki Cantonment (north)** appears stretched — military land creates 
+  road detours that increase travel time disproportionately.
+- **Erandwane and Deccan (west)** compress toward center — well connected 
+  via main arterial roads.
+
+## Tech stack
+
+- [OpenStreetMap](https://www.openstreetmap.org/) — free map tiles
+- [OSRM](http://project-osrm.org/) — local routing engine (via Docker)
+- [NumPy](https://numpy.org/) — matrix operations
+- [scikit-learn](https://scikit-learn.org/) — MDS and coordinate scaling
+- [SciPy](https://scipy.org/) — spatial interpolation
+- [OpenCV](https://opencv.org/) — image warping
+
+## Setup
+
+### Requirements
