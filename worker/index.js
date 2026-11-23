@@ -107,10 +107,10 @@ async function route(request, env) {
     const user = await githubUser(tokenData.access_token);
     if (!allowed(user.login, env)) return new Response("This GitHub account is not authorised to generate maps.", { status: 403 });
     const value = await seal({ login: user.login, token: tokenData.access_token, exp: Date.now() + 8 * 60 * 60 * 1000 }, env);
-    return new Response(null, { status: 302, headers: {
-      Location: env.PAGES_URL,
-      "Set-Cookie": [cookie("pune_session", value, 8 * 60 * 60, "None"), cookie("pune_oauth_state", "", 0)].join(", ")
-    }});
+    const headers = new Headers({ Location: env.PAGES_URL });
+    headers.append("Set-Cookie", cookie("pune_session", value, 8 * 60 * 60, "None"));
+    headers.append("Set-Cookie", cookie("pune_oauth_state", "", 0));
+    return new Response(null, { status: 302, headers });
   }
   if (url.pathname === "/logout" && request.method === "POST") {
     return response({ ok: true }, 200, { ...cors(request, env), "Set-Cookie": cookie("pune_session", "", 0, "None") });
