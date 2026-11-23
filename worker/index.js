@@ -123,7 +123,7 @@ async function route(request, env) {
   }
   if (url.pathname === "/api/generate" && request.method === "POST") {
     const origin = request.headers.get("Origin") || "";
-    if (origin !== env.PAGES_URL) return response({ error: "Invalid website origin." }, 403, cors(request, env));
+    if (origin !== env.PAGES_ORIGIN) return response({ error: "Invalid website origin." }, 403, cors(request, env));
     const session = await unseal(readCookie(request, "pune_session"), env);
     if (!session || !allowed(session.login, env)) return response({ error: "Sign in with the authorised GitHub account first." }, 401, cors(request, env));
     const result = await gh("/repos/" + OWNER + "/" + REPO + "/actions/workflows/" + WORKFLOW + "/dispatches", env, {
