@@ -35,7 +35,7 @@ Create a GitHub OAuth App under GitHub Settings → Developer settings → OAuth
 - Homepage URL: the GitHub Pages URL for this repository
 - Authorization callback URL: the Cloudflare Worker URL followed by `/oauth/callback`
 
-The Worker needs these secrets/variables. The OAuth callback exchanges the GitHub login for a short-lived signed session assertion returned in the URL fragment; the website stores it in session storage. The GitHub OAuth access token itself is not retained by the browser or Worker session:
+The Worker needs these secrets/variables. The OAuth callback verifies the GitHub login and returns a short-lived signed session assertion in the URL fragment. The website stores this assertion in session storage and sends it to the Worker as a bearer token. The GitHub OAuth access token itself is not retained in the browser session:
 
 | Name | Purpose |
 |---|---|
