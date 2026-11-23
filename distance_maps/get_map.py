@@ -14,7 +14,7 @@ from PIL import Image
 
 LAT_CENTER = 18.537438225978025
 LON_CENTER = 73.86652421444191
-ZOOM = 14
+ZOOM = 13
 GRID_SIZE = 9
 OUTPUT_FILE = Path("map.png")
 BOUNDS_FILE = Path("map_bounds.json")
