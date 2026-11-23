@@ -35,14 +35,14 @@ Create a GitHub OAuth App under GitHub Settings → Developer settings → OAuth
 - Homepage URL: the GitHub Pages URL for this repository
 - Authorization callback URL: the Cloudflare Worker URL followed by `/oauth/callback`
 
-The Worker needs these secrets/variables:
+The Worker needs these secrets/variables. The OAuth callback exchanges the GitHub login for a short-lived signed session assertion returned in the URL fragment; the website stores it in session storage. The GitHub OAuth access token itself is not retained by the browser or Worker session:
 
 | Name | Purpose |
 |---|---|
 | `GITHUB_CLIENT_ID` | OAuth App client ID |
 | `GITHUB_CLIENT_SECRET` | OAuth App client secret |
 | `GITHUB_TOKEN` | Fine-grained PAT with Actions read/write permission for this repository |
-| `SESSION_SECRET` | Random secret of at least 32 characters |
+| `SESSION_SECRET` | Random secret of at least 32 characters, used to sign short-lived browser sessions |
 | `ALLOWED_GITHUB_USER` | GitHub login allowed to start generations |
 | `PAGES_URL` | Full public GitHub Pages project URL, including repository path |\n| `PAGES_ORIGIN` | Origin only, such as `https://rajgpawar21.github.io` |
 
