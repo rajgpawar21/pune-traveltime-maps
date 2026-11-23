@@ -6,7 +6,7 @@ const encoder = new TextEncoder();
 
 function cors(request, env) {
   const origin = request.headers.get("Origin") || "";
-  if (origin !== env.PAGES_URL) return {};
+  if (origin !== env.PAGES_ORIGIN) return {};
   return {
     "Access-Control-Allow-Origin": origin,
     "Access-Control-Allow-Credentials": "true",
