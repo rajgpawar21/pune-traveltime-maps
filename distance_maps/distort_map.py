@@ -26,12 +26,29 @@ def lat_lon_to_image_pixel(lat, lon, bounds, width, height):
     return x, y
 
 
-def create_interactive_html(bounds, coordinates, output_path="pune_travel_time_map.html"):
-    points = [
-        {"lat": float(lat), "lon": float(lon), "label": f"Grid point {i + 1}"}
+def pixel_to_lat_lon(x_fraction, y_fraction, bounds):
+    """Convert normalized image coordinates to Leaflet latitude/longitude."""
+    lon = bounds["west"] + x_fraction * (bounds["east"] - bounds["west"])
+    north_y = np.log(np.tan(np.pi / 4.0 + np.radians(bounds["north"]) / 2.0))
+    south_y = np.log(np.tan(np.pi / 4.0 + np.radians(bounds["south"]) / 2.0))
+    mercator_y = north_y + y_fraction * (south_y - north_y)
+    lat = np.degrees(2.0 * np.arctan(np.exp(mercator_y)) - np.pi / 2.0)
+    return float(lat), float(lon)
+
+
+def create_interactive_html(bounds, coordinates, warped_points, output_path="pune_travel_time_map.html"):
+    original_points = [
+        {"lat": float(lat), "lon": float(lon), "label": f"Original grid point {i + 1}"}
         for i, (lat, lon) in enumerate(coordinates)
     ]
-    payload = json.dumps(points)
+    cartogram_points = []
+    for i, (x, y) in enumerate(warped_points):
+        lat, lon = pixel_to_lat_lon(float(x), float(y), bounds)
+        cartogram_points.append({
+            "lat": lat, "lon": lon, "label": f"Cartogram control point {i + 1}"
+        })
+    original_payload = json.dumps(original_points)
+    cartogram_payload = json.dumps(cartogram_points)
     south_west = [bounds["south"], bounds["west"]]
     north_east = [bounds["north"], bounds["east"]]
     center = [(bounds["south"] + bounds["north"]) / 2, (bounds["west"] + bounds["east"]) / 2]
@@ -65,7 +82,7 @@ html, body, #map { height: 100%; margin: 0; }
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const bounds = __BOUNDS__;
-const points = __POINTS__;
+const originalPoints = __ORIGINAL_POINTS__;\nconst cartogramPoints = __CARTOGRAM_POINTS__;
 const map = L.map('map');
 const imageBounds = L.latLngBounds(bounds.southWest, bounds.northEast);
 map.fitBounds(imageBounds);
@@ -74,15 +91,21 @@ const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 }).addTo(map);
 const original = L.imageOverlay('img/original_map_pune.png', imageBounds, {opacity: 0.95});
 const cartogram = L.imageOverlay('img/distorted_map_pune.png', imageBounds, {opacity: 0.85}).addTo(map);
-const pointLayer = L.layerGroup(points.map(p =>
+const originalPointLayer = L.layerGroup(originalPoints.map(p =>
+  L.circleMarker([p.lat, p.lon], {radius: 4, color: '#2563eb', weight: 1, fillOpacity: 0.85})
+    .bindPopup(p.label + '<br>' + p.lat.toFixed(5) + ', ' + p.lon.toFixed(5))
+));
+const cartogramPointLayer = L.layerGroup(cartogramPoints.map(p =>
   L.circleMarker([p.lat, p.lon], {radius: 4, color: '#b42318', weight: 1, fillOpacity: 0.85})
     .bindPopup(p.label + '<br>' + p.lat.toFixed(5) + ', ' + p.lon.toFixed(5))
 ));
-pointLayer.addTo(map);
+originalPointLayer.addTo(map);
+cartogramPointLayer.addTo(map);
 L.control.layers({'OpenStreetMap': osm}, {
   'Original raster': original,
   'Travel-time cartogram': cartogram,
-  'Sampling points': pointLayer
+  'Original sampling points': originalPointLayer,
+  'Cartogram control points': cartogramPointLayer
 }, {collapsed: false}).addTo(map);
 document.getElementById('opacity').addEventListener('input', event => {
   const value = Number(event.target.value) / 100;
@@ -95,7 +118,7 @@ document.getElementById('opacity').addEventListener('input', event => {
     html = html.replace("__BOUNDS__", json.dumps({
         "southWest": south_west,
         "northEast": north_east,
-    })).replace("__POINTS__", payload)
+    })).replace("__ORIGINAL_POINTS__", original_payload).replace("__CARTOGRAM_POINTS__", cartogram_payload)
     Path(output_path).write_text(html, encoding="utf-8")
     print(f"Saved interactive map: {output_path}")
 
@@ -158,7 +181,7 @@ def main():
     cv2.imwrite("img/original_map_pune.png", source)
     if not cv2.imwrite("img/distorted_map_pune.png", warped):
         raise RuntimeError("Could not write img/distorted_map_pune.png")
-    create_interactive_html(bounds, coordinates)
+    create_interactive_html(bounds, coordinates, warped_points)
     print("Saved img/original_map_pune.png and img/distorted_map_pune.png")
 
 
