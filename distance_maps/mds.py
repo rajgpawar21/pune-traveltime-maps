@@ -1,74 +1,91 @@
-import numpy as np
+"""Convert OSRM travel times into a 2D cartogram using metric MDS."""
+from pathlib import Path
+
 import matplotlib
-matplotlib.use('Agg')
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from sklearn.manifold import MDS
+import numpy as np
 from scipy.spatial import procrustes
-import os
-
-os.makedirs("img", exist_ok=True)
-
-travel_times = np.load("travel_times.npy")
-n = travel_times.shape[0]
-print(f"Loaded travel_times.npy — {n}x{n} matrix")
-
-real_max = travel_times[travel_times < 9999].max()
-travel_times[travel_times == 9999] = real_max
-
-symmetric = (travel_times + travel_times.T) / 2
-
-print("Running MDS...")
-mds = MDS(
-    n_components=2,
-    dissimilarity='precomputed',
-    random_state=42,
-    max_iter=3000,
-    n_init=4
-)
-new_coordinates = mds.fit_transform(symmetric)
-
-# ---- Procrustes alignment ----
-# Load original geographic coordinates and use them as the
-# reference orientation so MDS output aligns with the real map
-original_coordinates = np.load("coordinates.npy")
-
-# Convert lat/lon to a pixel-like space (flip lat so north=up)
-ref = np.zeros((n, 2))
-ref[:, 0] = original_coordinates[:, 1]   # lon → x
-ref[:, 1] = -original_coordinates[:, 0]  # lat → y (flip so north is up)
-
-# Procrustes rotates/reflects/scales MDS to best match the reference
-_, new_aligned, _ = procrustes(ref, new_coordinates)
-
-# Clamp aligned coordinates to stay strictly within bounds
-# This prevents edge pixels from mapping outside the image
+from sklearn.manifold import MDS
 from sklearn.preprocessing import MinMaxScaler
-scaler = MinMaxScaler(feature_range=(0.1, 0.9))
-new_aligned = scaler.fit_transform(new_aligned)
 
-np.save("new_coordinates.npy", new_aligned)
-print("Saved new_coordinates.npy (Procrustes aligned)")
 
-# Plot original
-lons_orig = [c[1] for c in original_coordinates]
-lats_orig = [c[0] for c in original_coordinates]
-plt.figure(figsize=(6, 6))
-plt.scatter(lons_orig, lats_orig, c='steelblue', s=20)
-plt.title("Original coordinates (geographic)")
-plt.xlabel("Longitude")
-plt.ylabel("Latitude")
-plt.tight_layout()
-plt.savefig("img/original_coordinates.png")
-plt.close()
+def make_symmetric_dissimilarity(durations):
+    """Average reciprocal durations; retain a one-way duration if only one exists."""
+    matrix = np.asarray(durations, dtype=float)
+    if matrix.ndim != 2 or matrix.shape[0] != matrix.shape[1]:
+        raise ValueError("Travel-time matrix must be square.")
+    finite = np.isfinite(matrix) & (matrix >= 0)
+    values = matrix[finite]
+    if values.size == 0:
+        raise ValueError("The travel-time matrix contains no reachable routes.")
+    largest = float(values.max())
+    penalty = max(largest * 1.5, largest + 60.0)
 
-# Plot aligned MDS output
-colors = plt.cm.viridis(np.linspace(0, 1, n))
-plt.figure(figsize=(6, 6))
-plt.scatter(new_aligned[:, 0], new_aligned[:, 1], c=colors, s=20)
-plt.title("Travel-time distorted coordinates (Pune, aligned)")
-plt.xlabel("MDS dimension 1")
-plt.ylabel("MDS dimension 2")
-plt.tight_layout()
-plt.savefig("img/new_coordinates.png")
-plt.close()
-print("Saved coordinate plots")
+    n = matrix.shape[0]
+    symmetric = np.zeros((n, n), dtype=float)
+    for i in range(n):
+        for j in range(i + 1, n):
+            a, b = matrix[i, j], matrix[j, i]
+            a_ok, b_ok = np.isfinite(a), np.isfinite(b)
+            if a_ok and b_ok:
+                value = (a + b) / 2.0
+            elif a_ok:
+                value = a
+            elif b_ok:
+                value = b
+            else:
+                value = penalty
+            symmetric[i, j] = symmetric[j, i] = value
+    return symmetric, penalty
+
+
+def main():
+    Path("img").mkdir(exist_ok=True)
+    durations = np.load("travel_times.npy")
+    coordinates = np.load("coordinates.npy")
+    if len(coordinates) != durations.shape[0]:
+        raise ValueError("coordinates.npy and travel_times.npy have inconsistent sizes.")
+
+    dissimilarity, unreachable_penalty = make_symmetric_dissimilarity(durations)
+    print(f"Running MDS for {len(coordinates)} locations; missing-pair penalty={unreachable_penalty:.1f}s")
+
+    model = MDS(
+        n_components=2,
+        metric=True,
+        dissimilarity="precomputed",
+        random_state=42,
+        n_init=4,
+        max_iter=3000,
+        eps=1e-6,
+    )
+    embedded = model.fit_transform(dissimilarity)
+
+    # Orient the solution to match the geographic grid (east right, north up).
+    reference = np.column_stack((coordinates[:, 1], -coordinates[:, 0]))
+    _, aligned, _ = procrustes(reference, embedded)
+    aligned = MinMaxScaler(feature_range=(0.08, 0.92)).fit_transform(aligned)
+    np.save("new_coordinates.npy", aligned)
+
+    plt.figure(figsize=(7, 7))
+    plt.scatter(coordinates[:, 1], coordinates[:, 0], s=18)
+    plt.title("Original Pune sampling locations")
+    plt.xlabel("Longitude")
+    plt.ylabel("Latitude")
+    plt.tight_layout()
+    plt.savefig("img/original_coordinates.png", dpi=160)
+    plt.close()
+
+    plt.figure(figsize=(7, 7))
+    plt.scatter(aligned[:, 0], aligned[:, 1], c=np.arange(len(aligned)), cmap="viridis", s=24)
+    plt.title("Travel-time cartogram control points")
+    plt.xlabel("Cartogram x")
+    plt.ylabel("Cartogram y")
+    plt.tight_layout()
+    plt.savefig("img/new_coordinates.png", dpi=160)
+    plt.close()
+    print(f"Saved new_coordinates.npy; MDS stress={getattr(model, 'stress_', float('nan')):.4f}")
+
+
+if __name__ == "__main__":
+    main()
