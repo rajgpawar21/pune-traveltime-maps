@@ -1,8 +1,8 @@
-name = "pune-traveltime-maps-api"
+name = "pune-traveltime-maps"
 main = "index.js"
 compatibility_date = "2026-11-24"
 
 [vars]
-ALLOWED_GITHUB_USER = "*"
+ALLOWED_GITHUB_USER = "rajgpawar21"
 PAGES_URL = "https://rajgpawar21.github.io/pune-traveltime-maps/"
 PAGES_ORIGIN = "https://rajgpawar21.github.io"
