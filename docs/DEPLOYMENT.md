@@ -52,7 +52,7 @@ Only the authorised GitHub account can start a generation. The public can view t
 
 Create a Worker and connect it to this repository's `worker/` directory, or paste `worker/index.js` into the Cloudflare dashboard editor. Set the variables and secrets listed above in Worker Settings → Variables and Secrets.
 
-Set the worker URL in `site/app.js` by replacing `https://YOUR-WORKER.your-subdomain.workers.dev`. The Worker must allow the Pages origin in its CORS policy. Redeploy the Worker after changing its code or variables.
+Set `PAGES_URL` to the full GitHub Pages project URL and `PAGES_ORIGIN` to its origin only (scheme plus hostname). Set `ALLOWED_GITHUB_USER` to your GitHub login. Set the Worker URL in `site/app.js` by replacing `https://YOUR-WORKER.your-subdomain.workers.dev` with the deployed Worker origin. The Worker must allow the Pages origin in its CORS policy. Redeploy the Worker after changing its code or variables.
 
 ## 5. Validate
 
