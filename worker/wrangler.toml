@@ -1,6 +1,6 @@
 name = "pune-traveltime-maps"
 main = "index.js"
-compatibility_date = "2026-11-24"
+compatibility_date = "2026-11-23"
 
 [vars]
 ALLOWED_GITHUB_USER = "rajgpawar21"
