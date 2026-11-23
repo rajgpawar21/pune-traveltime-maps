@@ -75,7 +75,8 @@ async function githubUser(accessToken) {
   return r.json();
 }
 function allowed(login, env) {
-  return (env.ALLOWED_GITHUB_USER || "").toLowerCase() === (login || "").toLowerCase();
+  const configured = (env.ALLOWED_GITHUB_USER || "*").toLowerCase();
+  return configured === "*" || configured === (login || "").toLowerCase();
 }
 async function route(request, env) {
   const url = new URL(request.url);
@@ -126,6 +127,11 @@ async function route(request, env) {
     if (origin !== env.PAGES_ORIGIN) return response({ error: "Invalid website origin." }, 403, cors(request, env));
     const session = await unseal(readCookie(request, "pune_session"), env);
     if (!session || !allowed(session.login, env)) return response({ error: "Sign in with the authorised GitHub account first." }, 401, cors(request, env));
+    const active = await gh("/repos/" + OWNER + "/" + REPO + "/actions/workflows/" + WORKFLOW + "/runs?branch=main&per_page=1", env);
+    const latest = active.workflow_runs?.[0];
+    if (latest && ["queued", "in_progress", "waiting", "requested"].includes(latest.status)) {
+      return response({ error: "A map generation is already queued or running. Please wait for it to finish." }, 409, cors(request, env));
+    }
     const result = await gh("/repos/" + OWNER + "/" + REPO + "/actions/workflows/" + WORKFLOW + "/dispatches", env, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ref: "main" })
