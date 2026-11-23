@@ -125,7 +125,12 @@ async function route(request, env) {
   if (url.pathname === "/api/status") {
     const runs = await gh("/repos/" + OWNER + "/" + REPO + "/actions/workflows/" + WORKFLOW + "/runs?branch=main&per_page=1", env);
     const run = runs.workflow_runs?.[0];
-    return response({ run: run ? { id: run.id, run_number: run.run_number, run_attempt: run.run_attempt, status: run.status, conclusion: run.conclusion, html_url: run.html_url } : null }, 200, cors(request, env));
+    let steps = [];
+    if (run && ["queued", "in_progress"].includes(run.status)) {
+      const jobs = await gh("/repos/" + OWNER + "/" + REPO + "/actions/runs/" + run.id + "/jobs?per_page=10", env);
+      steps = (jobs.jobs?.[0]?.steps || []).map(step => ({ name: step.name, status: step.status, conclusion: step.conclusion }));
+    }
+    return response({ run: run ? { id: run.id, run_number: run.run_number, run_attempt: run.run_attempt, status: run.status, conclusion: run.conclusion, html_url: run.html_url, steps } : null }, 200, cors(request, env));
   }
   if (url.pathname === "/api/generate" && request.method === "POST") {
     const origin = request.headers.get("Origin") || "";
