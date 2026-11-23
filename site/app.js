@@ -102,7 +102,19 @@ async function checkRun() {
       }
       return;
     }
-    setStatus("Running", "GitHub Actions is processing the map. You can keep this page open.", Math.min(90, 8 + (run.run_attempt || 1) * 2), "running");
+    const steps = run.steps || [];
+    const completed = (name) => steps.some(step => step.name.includes(name) && step.status === "completed" && step.conclusion === "success");
+    const active = (name) => steps.some(step => step.name.includes(name) && step.status === "in_progress");
+    let stage = 0, progress = 8, detail = "Waiting for a GitHub-hosted runner.";
+    if (completed("Download regional Pune road data")) { stage = 1; progress = 20; detail = "Regional road data downloaded."; }
+    if (completed("Build self-hosted OSRM")) { stage = 2; progress = 38; detail = "OSRM routing engine is ready."; }
+    if (active("Run complete cartogram pipeline")) { stage = 2; progress = 55; detail = "Calculating the travel-time matrix and constructing the cartogram."; }
+    if (completed("Run complete cartogram pipeline")) { stage = 4; progress = 82; detail = "Cartogram generated. Preparing the public map and archive."; }
+    if (active("Assemble public website")) { stage = 4; progress = 90; detail = "Preparing the latest map and historical versions."; }
+    if (active("Publish website")) { stage = 4; progress = 96; detail = "Publishing the website and map archive."; }
+    setStage(stage);
+    setStatus("Running", detail, progress, "running");
+    if (!pollTimer) pollTimer = setInterval(checkRun, 10000);
   } catch (error) { setStatus("Checking", error.message, 5, "running"); }
 }
 $("generate").addEventListener("click", async () => {
