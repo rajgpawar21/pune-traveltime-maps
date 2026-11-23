@@ -1,32 +1,37 @@
-import numpy as np
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
+"""Generate a north-to-south, west-to-east regular grid over Pune."""
+from pathlib import Path
 
-# Pune bounding box
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import numpy as np
+
 LAT_MIN, LAT_MAX = 18.42, 18.62
 LON_MIN, LON_MAX = 73.75, 73.97
-GRID_N = 9    # was 8 — more points = better edge coverage
+GRID_N = 9
 
-lats = np.linspace(LAT_MAX, LAT_MIN, GRID_N)   # top to bottom
-lons = np.linspace(LON_MIN, LON_MAX, GRID_N)   # left to right
 
-coordinates = []
-for lat in lats:
-    for lon in lons:
-        coordinates.append((lat, lon))
+def generate_coordinates():
+    Path("img").mkdir(exist_ok=True)
+    latitudes = np.linspace(LAT_MAX, LAT_MIN, GRID_N)
+    longitudes = np.linspace(LON_MIN, LON_MAX, GRID_N)
+    # Row-major order: each row runs west -> east, rows run north -> south.
+    coordinates = np.array([(lat, lon) for lat in latitudes for lon in longitudes])
+    np.save("coordinates.npy", coordinates)
+    np.savetxt("coordinates.csv", coordinates, delimiter=",", header="latitude,longitude", comments="")
 
-np.save("coordinates.npy", coordinates)
-print(f"Generated {len(coordinates)} coordinates")
+    plt.figure(figsize=(7, 7))
+    plt.scatter(coordinates[:, 1], coordinates[:, 0], s=18)
+    plt.title("Pune travel-time sampling grid")
+    plt.xlabel("Longitude")
+    plt.ylabel("Latitude")
+    plt.grid(alpha=0.25)
+    plt.tight_layout()
+    plt.savefig("img/original_coordinates.png", dpi=160)
+    plt.close()
+    print(f"Saved {len(coordinates)} coordinates to coordinates.npy")
+    return coordinates
 
-# Plot to verify they cover Pune correctly
-lats_plot = [c[0] for c in coordinates]
-lons_plot = [c[1] for c in coordinates]
-plt.figure(figsize=(6,6))
-plt.scatter(lons_plot, lats_plot, s=10)
-plt.title("Coordinate grid over Pune")
-plt.xlabel("Longitude")
-plt.ylabel("Latitude")
-plt.tight_layout()
-plt.savefig("img/original_coordinates.png")
-print("Saved img/original_coordinates.png")
+
+if __name__ == "__main__":
+    generate_coordinates()
