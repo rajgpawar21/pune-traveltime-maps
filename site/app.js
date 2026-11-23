@@ -1,4 +1,4 @@
-const API = window.PUNE_MAP_API || "https://YOUR-WORKER.your-subdomain.workers.dev";
+const API = window.PUNE_MAP_API || "https://pune-traveltime-maps.rajgpawar21.workers.dev";
 const returnedSession = new URLSearchParams(location.hash.slice(1)).get("session");
 if (returnedSession) {
   sessionStorage.setItem("pune_session", returnedSession);
