@@ -1,4 +1,9 @@
 const API = window.PUNE_MAP_API || "https://YOUR-WORKER.your-subdomain.workers.dev";
+const returnedSession = new URLSearchParams(location.hash.slice(1)).get("session");
+if (returnedSession) {
+  sessionStorage.setItem("pune_session", returnedSession);
+  history.replaceState(null, "", location.pathname + location.search);
+}
 const $ = (id) => document.getElementById(id);
 let currentRunId = null;
 let pollTimer = null;
@@ -16,8 +21,9 @@ function setStage(active) {
   });
 }
 async function api(path, options = {}) {
-  const response = await fetch(API + path, { credentials: "include", ...options,
-    headers: { "Content-Type": "application/json", ...(options.headers || {}) } });
+  const token = sessionStorage.getItem("pune_session");
+  const response = await fetch(API + path, { ...options,
+    headers: { "Content-Type": "application/json", ...(token ? { Authorization: "Bearer " + token } : {}), ...(options.headers || {}) } });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data.error || "Request failed (" + response.status + ")");
   return data;
@@ -116,8 +122,9 @@ $("generate").addEventListener("click", async () => {
     $("generate").disabled = false;
   }
 });
-$("logout").addEventListener("click", async () => {
-  try { await api("/logout", { method: "POST", body: "{}" }); } finally { location.reload(); }
+$("logout").addEventListener("click", () => {
+  sessionStorage.removeItem("pune_session");
+  location.reload();
 });
 refreshAuth();
 loadHistory();
