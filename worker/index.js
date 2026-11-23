@@ -11,7 +11,7 @@ function cors(request, env) {
     "Access-Control-Allow-Origin": origin,
     "Access-Control-Allow-Credentials": "true",
     "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Headers": "Content-Type,Authorization",
     "Vary": "Origin"
   };
 }
@@ -36,22 +36,25 @@ function unb64(value) {
   const binary = atob(base + "=".repeat((4 - base.length % 4) % 4));
   return Uint8Array.from(binary, c => c.charCodeAt(0));
 }
-async function key(env) {
+async function signingKey(env) {
   const digest = await crypto.subtle.digest("SHA-256", encoder.encode(env.SESSION_SECRET));
-  return crypto.subtle.importKey("raw", digest, "AES-GCM", false, ["encrypt", "decrypt"]);
+  return crypto.subtle.importKey("raw", digest, { name: "HMAC", hash: "SHA-256" }, false, ["sign", "verify"]);
 }
-async function seal(value, env) {
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const encrypted = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, await key(env), encoder.encode(JSON.stringify(value)));
-  return b64(new Uint8Array([...iv, ...new Uint8Array(encrypted)]));
+async function createSession(login, env) {
+  const payload = b64(encoder.encode(JSON.stringify({ login, exp: Date.now() + 8 * 60 * 60 * 1000 })));
+  const signature = await crypto.subtle.sign("HMAC", await signingKey(env), encoder.encode(payload));
+  return payload + "." + b64(new Uint8Array(signature));
 }
-async function unseal(value, env) {
-  if (!value) return null;
+async function readSession(request, env) {
   try {
-    const bytes = unb64(value), iv = bytes.slice(0, 12), data = bytes.slice(12);
-    const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, await key(env), data);
-    const session = JSON.parse(new TextDecoder().decode(plain));
-    if (!session.exp || session.exp < Date.now()) return null;
+    const header = request.headers.get("Authorization") || "";
+    if (!header.startsWith("Bearer ")) return null;
+    const parts = header.slice(7).split(".");
+    if (parts.length !== 2) return null;
+    const valid = await crypto.subtle.verify("HMAC", await signingKey(env), unb64(parts[1]), encoder.encode(parts[0]));
+    if (!valid) return null;
+    const session = JSON.parse(new TextDecoder().decode(unb64(parts[0])));
+    if (!session.login || !session.exp || session.exp < Date.now()) return null;
     return session;
   } catch (_) { return null; }
 }
@@ -106,9 +109,8 @@ async function route(request, env) {
     if (!tokenData.access_token) return new Response("GitHub sign-in failed.", { status: 401 });
     const user = await githubUser(tokenData.access_token);
     if (!allowed(user.login, env)) return new Response("This GitHub account is not authorised to generate maps.", { status: 403 });
-    const value = await seal({ login: user.login, token: tokenData.access_token, exp: Date.now() + 8 * 60 * 60 * 1000 }, env);
-    const headers = new Headers({ Location: env.PAGES_URL });
-    headers.append("Set-Cookie", cookie("pune_session", value, 8 * 60 * 60, "None"));
+    const value = await createSession(user.login, env);
+    const headers = new Headers({ Location: env.PAGES_URL + "#session=" + encodeURIComponent(value) });
     headers.append("Set-Cookie", cookie("pune_oauth_state", "", 0));
     return new Response(null, { status: 302, headers });
   }
@@ -116,7 +118,7 @@ async function route(request, env) {
     return response({ ok: true }, 200, { ...cors(request, env), "Set-Cookie": cookie("pune_session", "", 0, "None") });
   }
   if (url.pathname === "/api/me") {
-    const session = await unseal(readCookie(request, "pune_session"), env);
+    const session = await readSession(request, env);
     if (!session || !allowed(session.login, env)) return response({ error: "Sign in with the authorised GitHub account to generate maps." }, 401, cors(request, env));
     return response({ login: session.login }, 200, cors(request, env));
   }
