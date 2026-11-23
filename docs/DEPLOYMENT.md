@@ -44,7 +44,8 @@ The Worker needs these secrets/variables. The OAuth callback verifies the GitHub
 | `GITHUB_TOKEN` | Fine-grained PAT with Actions read/write permission for this repository |
 | `SESSION_SECRET` | Random secret of at least 32 characters, used to sign short-lived browser sessions |
 | `ALLOWED_GITHUB_USER` | GitHub login allowed to start generations |
-| `PAGES_URL` | Full public GitHub Pages project URL, including repository path |\n| `PAGES_ORIGIN` | Origin only, such as `https://rajgpawar21.github.io` |
+| `PAGES_URL` | Full public GitHub Pages project URL, including repository path |
+| `PAGES_ORIGIN` | Origin only, such as `https://rajgpawar21.github.io` |
 
 Anyone with a GitHub account can sign in to start a generation under the current `*` setting. The public can view the map and its archive without signing in. Never put the GitHub token or OAuth client secret in website JavaScript.
 
