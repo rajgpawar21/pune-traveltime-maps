@@ -3,5 +3,5 @@ main = "index.js"
 compatibility_date = "2026-11-24"
 
 [vars]
-ALLOWED_GITHUB_USER = "REPLACE_WITH_GITHUB_LOGIN"
+ALLOWED_GITHUB_USER = "*"
 PAGES_URL = "https://rajgpawar21.github.io/pune-traveltime-maps"\nPAGES_ORIGIN = "https://rajgpawar21.github.io"
