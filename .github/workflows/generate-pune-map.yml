@@ -1,0 +1,149 @@
+name: Generate Pune travel-time map
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pune-map-generation
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Check out previously published site
+        uses: actions/checkout@v4
+        continue-on-error: true
+        with:
+          ref: gh-pages
+          path: previous-site
+
+      - name: Validate regional OSM extract URL
+        env:
+          OSM_PBF_URL: ${{ secrets.OSM_PBF_URL }}
+        run: |
+          if [ -z "$OSM_PBF_URL" ]; then
+            echo "::error::Repository secret OSM_PBF_URL is not configured."
+            exit 1
+          fi
+
+      - name: Download regional Pune road data
+        env:
+          OSM_PBF_URL: ${{ secrets.OSM_PBF_URL }}
+        run: |
+          mkdir -p data
+          curl --fail --location --retry 3 --retry-delay 5 "$OSM_PBF_URL" -o data/pune.osm.pbf
+          test -s data/pune.osm.pbf
+          ls -lh data/pune.osm.pbf
+
+      - name: Build self-hosted OSRM driving engine
+        run: |
+          docker pull osrm/osrm-backend:latest
+          docker run --rm -t -v "$PWD/data:/data" osrm/osrm-backend:latest \
+            osrm-extract -p /opt/car.lua /data/pune.osm.pbf
+          docker run --rm -t -v "$PWD/data:/data" osrm/osrm-backend:latest \
+            osrm-partition /data/pune.osrm
+          docker run --rm -t -v "$PWD/data:/data" osrm/osrm-backend:latest \
+            osrm-customize /data/pune.osrm
+          docker run -d --name pune-osrm -p 5001:5000 -v "$PWD/data:/data" \
+            osrm/osrm-backend:latest osrm-routed --algorithm mld /data/pune.osrm
+          for attempt in $(seq 1 60); do
+            if curl --silent --fail "http://127.0.0.1:5001/nearest/v1/driving/73.8665,18.5374" >/dev/null; then
+              echo "OSRM is ready."
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs pune-osrm
+          exit 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run complete cartogram pipeline
+        env:
+          OSRM_URL: http://127.0.0.1:5001
+          OSRM_PROFILE: driving
+        run: python main.py
+
+      - name: Assemble public website and historical archive
+        env:
+          RUN_NUMBER: ${{ github.run_number }}
+          RUN_ID: ${{ github.run_id }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          mkdir -p site/maps/latest site/maps/history
+          if [ -d previous-site/maps/history ]; then
+            cp -a previous-site/maps/history/. site/maps/history/
+          fi
+          if [ -f previous-site/history.json ]; then
+            cp previous-site/history.json site/history.previous.json
+          fi
+          cp site/index.html site/styles.css site/app.js site/
+          cp pune_travel_time_map.html site/maps/latest/
+          cp -a img site/maps/latest/
+          STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+          VERSION="maps/history/${STAMP}-run-${RUN_NUMBER}"
+          mkdir -p "site/${VERSION}"
+          cp pune_travel_time_map.html "site/${VERSION}/"
+          cp -a img "site/${VERSION}/"
+          python - <<'PY'
+          import json, os
+          from datetime import datetime, timezone
+          from pathlib import Path
+          old_path = Path("site/history.previous.json")
+          old = json.loads(old_path.read_text()).get("items", []) if old_path.exists() else []
+          item = {
+              "generated_at": datetime.now(timezone.utc).isoformat(),
+              "run_number": int(os.environ["RUN_NUMBER"]),
+              "run_id": os.environ["RUN_ID"],
+              "commit": os.environ["COMMIT_SHA"],
+              "path": os.environ["VERSION"]
+          }
+          items = [item] + [x for x in old if x.get("run_id") != item["run_id"]]
+          Path("site/history.json").write_text(json.dumps({"items": items}, indent=2))
+          PY
+          rm -f site/history.previous.json
+        env:
+          VERSION: maps/history/${{ github.run_id }}-run-${{ github.run_number }}
+
+      - name: Upload generated files for diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pune-map-run-${{ github.run_number }}
+          path: |
+            pune_travel_time_map.html
+            map_bounds.json
+            travel_times.npy
+            new_coordinates.npy
+            img/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Publish website and map archive
+        if: success()
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./site
+          force_orphan: false
+          keep_files: false
+          commit_message: "Publish Pune map generation #${{ github.run_number }}"
