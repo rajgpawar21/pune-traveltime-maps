@@ -135,7 +135,7 @@ async function route(request, env) {
   if (url.pathname === "/api/generate" && request.method === "POST") {
     const origin = request.headers.get("Origin") || "";
     if (origin !== env.PAGES_ORIGIN) return response({ error: "Invalid website origin." }, 403, cors(request, env));
-    const session = await unseal(readCookie(request, "pune_session"), env);
+    const session = await readSession(request, env);
     if (!session || !allowed(session.login, env)) return response({ error: "Sign in with the authorised GitHub account first." }, 401, cors(request, env));
     const active = await gh("/repos/" + OWNER + "/" + REPO + "/actions/workflows/" + WORKFLOW + "/runs?branch=main&per_page=1", env);
     const latest = active.workflow_runs?.[0];
