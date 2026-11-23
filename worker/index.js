@@ -37,7 +37,8 @@ function unb64(value) {
   return Uint8Array.from(binary, c => c.charCodeAt(0));
 }
 async function key(env) {
-  return crypto.subtle.importKey("raw", encoder.encode(env.SESSION_SECRET), "AES-GCM", false, ["encrypt", "decrypt"]);
+  const digest = await crypto.subtle.digest("SHA-256", encoder.encode(env.SESSION_SECRET));
+  return crypto.subtle.importKey("raw", digest, "AES-GCM", false, ["encrypt", "decrypt"]);
 }
 async function seal(value, env) {
   const iv = crypto.getRandomValues(new Uint8Array(12));
@@ -89,7 +90,9 @@ async function route(request, env) {
     authorize.searchParams.set("redirect_uri", callback);
     authorize.searchParams.set("scope", "read:user");
     authorize.searchParams.set("state", state);
-    return Response.redirect(authorize.toString(), 302, { "Set-Cookie": cookie("pune_oauth_state", state, 600) });
+    const headers = new Headers({ Location: authorize.toString() });
+    headers.append("Set-Cookie", cookie("pune_oauth_state", state, 600));
+    return new Response(null, { status: 302, headers });
   }
   if (url.pathname === "/oauth/callback") {
     const state = url.searchParams.get("state") || "";
