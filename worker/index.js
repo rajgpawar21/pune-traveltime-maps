@@ -74,7 +74,7 @@ async function gh(path, env, options = {}) {
   return body;
 }
 async function githubUser(accessToken) {
-  const r = await fetch(API + "/user", { headers: { Authorization: "Bearer " + accessToken, Accept: "application/vnd.github+json" } });
+  const r = await fetch(API + "/user", { headers: { Authorization: "Bearer " + accessToken, Accept: "application/vnd.github+json", "User-Agent": "pune-traveltime-maps", "X-GitHub-Api-Version": "2022-11-28" } });
   if (!r.ok) throw new Error("GitHub could not verify your account.");
   return r.json();
 }
