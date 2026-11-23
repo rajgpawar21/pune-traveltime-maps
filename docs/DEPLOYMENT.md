@@ -17,12 +17,12 @@ The extract URL may expire. If a later generation fails to download it, create a
 
 ## 2. GitHub Actions and Pages
 
-After the pull request is reviewed and merged into `main`:
+After the pull request is reviewed and merged into `main`, enable Pages. The initial `gh-pages` branch already contains the public website shell and a placeholder map page:
 
 1. Open Settings → Pages.
 2. Set the publishing source to **Deploy from a branch**.
 3. Select branch `gh-pages` and folder `/ (root)`.
-4. Save. The generation workflow creates/updates this branch on its first successful run.
+4. Save. Each successful generation updates this branch with the latest map and retained history.
 5. In Settings → Actions → General, ensure the repository permits actions to create and approve pull requests / write repository contents as required. The workflow declares `contents: write`.
 
 The first successful generation publishes the site and its map. Every successful run is retained under `maps/history/`; the latest is also published under `maps/latest/`.
@@ -44,9 +44,9 @@ The Worker needs these secrets/variables:
 | `GITHUB_TOKEN` | Fine-grained PAT with Actions read/write permission for this repository |
 | `SESSION_SECRET` | Random secret of at least 32 characters |
 | `ALLOWED_GITHUB_USER` | GitHub login allowed to start generations |
-| `PAGES_URL` | Public GitHub Pages URL |
+| `PAGES_URL` | Full public GitHub Pages project URL, including repository path |\n| `PAGES_ORIGIN` | Origin only, such as `https://rajgpawar21.github.io` |
 
-Only the authorised GitHub account can start a generation. The public can view the map and its archive without signing in. Never put the GitHub token or OAuth client secret in website JavaScript.
+Anyone with a GitHub account can sign in to start a generation under the current `*` setting. The public can view the map and its archive without signing in. Never put the GitHub token or OAuth client secret in website JavaScript.
 
 ## 4. Deploy the Cloudflare Worker
 
@@ -56,7 +56,7 @@ Set `PAGES_URL` to the full GitHub Pages project URL and `PAGES_ORIGIN` to its o
 
 ## 5. Validate
 
-1. Sign in on the public website with the authorised GitHub account.
+1. Sign in on the public website with a GitHub account.
 2. Press **Generate Pune Map**.
 3. Check the Actions run if it fails. The workflow retains diagnostic artifacts for 14 days.
 4. Confirm the latest map loads, the image overlays load, and the archive contains the new run.
