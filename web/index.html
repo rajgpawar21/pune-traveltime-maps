@@ -20,6 +20,10 @@
   </header>
   <div id="body">
     <label class="row"><span>City</span><select id="city"></select></label>
+    <div id="lensRow" class="seg" hidden role="radiogroup" aria-label="Analysis lens">
+      <button data-lens="classic" class="on">Activity × connectivity</button>
+      <button data-lens="prox">Proximity lens</button>
+    </div>
 
     <section>
       <div class="lab"><span>Stretch</span><output id="stretchOut">100%</output></div>
@@ -28,6 +32,7 @@
       <button id="stretchPlay" class="ghost">▶ Animate stretch</button>
     </section>
 
+    <div id="classicCtl">
     <section id="timeSec">
       <div class="lab"><span>Time</span><output id="snapOut"></output></div>
       <input id="snap" type="range" min="0" max="0" step="0.01" value="0">
@@ -54,6 +59,47 @@
       <div id="legend"></div>
     </section>
 
+    </div>
+    <div id="proxCtl" hidden>
+      <section>
+        <div class="lab"><span>Viewpoint</span></div>
+        <select id="persona" style="width:100%"></select>
+        <div id="pillars" class="sliders"></div>
+        <details id="catDetails"><summary>Lifestyle categories</summary><div id="cats" class="sliders"></div></details>
+      </section>
+      <section>
+        <div class="lab"><span>Stretch map shape</span></div>
+        <select id="shape" style="width:100%">
+          <option value="free">Drive, free-flow (as classic)</option>
+          <option value="peak">Drive, peak hour</option>
+          <option value="mm" selected>Drive + metro, peak hour</option>
+        </select>
+      </section>
+      <section id="pyearSec">
+        <div class="lab"><span>Year</span><output id="pyearOut"></output></div>
+        <input id="pyear" type="range" min="0" max="0" step="0.02" value="0">
+        <div id="pyearTicks" class="ends"></div>
+        <div id="pScenario" class="badge" hidden>Planned / assumed, not observed</div>
+        <button id="pyearPlay" class="ghost">▶ Play years</button>
+      </section>
+      <section>
+        <div class="lab"><span>Layer</span></div>
+        <div id="pmodes" role="radiogroup">
+          <label><input type="radio" name="pmode" value="composite" checked><span>Composite</span></label>
+          <label><input type="radio" name="pmode" value="work"><span>Work</span></label>
+          <label><input type="radio" name="pmode" value="lifestyle"><span>Lifestyle</span></label>
+          <label><input type="radio" name="pmode" value="metro"><span>Metro</span></label>
+          <label><input type="radio" name="pmode" value="premium"><span>Metro premium</span></label>
+          <label><input type="radio" name="pmode" value="change"><span>Change over years</span></label>
+        </div>
+        <div id="pLegend" class="legendbox"></div>
+      </section>
+      <section id="pListSec">
+        <div class="lab"><span id="pListTitle">Top areas</span>
+          <select id="pRank"><option value="score">by score</option><option value="rise">by rise</option></select></div>
+        <ol id="pList"></ol>
+      </section>
+    </div>
     <section class="checks">
       <label><input id="ghost" type="checkbox" checked><span>Ghost of geographic roads</span></label>
       <label><input id="labels" type="checkbox" checked><span>Place labels</span></label>
@@ -81,5 +127,6 @@
 <div id="credit">Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors</div>
 <div id="loading">Loading…</div>
 <script src="app.js"></script>
+<script src="lens.js"></script>
 </body>
 </html>

@@ -65,6 +65,22 @@ percentiles are taken against the **first snapshot**, so growth can exceed the b
 contiguous 8-neighbour blocks of cells with `M ≥ threshold`. The CSV ranks clusters by Δscore when
 there are ≥ 2 snapshots (otherwise by score).
 
+## Proximity lens (second toggle, does not replace the above)
+
+Switch **Activity × connectivity → Proximity lens** in the viewer. Same map, warp and grid; different question:
+*how close is each place to jobs, lifestyle and metro?* Plan and decisions: [`docs/PROXIMITY_LENS_PLAN.md`](docs/PROXIMITY_LENS_PLAN.md).
+
+* **Work**: OSM offices (area-weighted headcount proxy) plus a soft boost from [india-sez-atlas](https://github.com/rajgpawar21/india-sez-atlas) (`config/external/sez_india_277.csv`; each SEZ spread over ~2 km because the coordinates are locality-level).
+* **Lifestyle**: dining, nightlife, malls, cinemas, parks with tiered weights (a mall ≫ a cafe) and per-category sliders.
+* **Metro**: door-to-door multimodal times (access, 5 min wait, ride at 32 km/h, dwell, transfers). Pillar = closeness to a station in service that year plus the **metro premium** (extra jobs reachable within 45 min vs road only).
+* **Composite**: live pillar sliders, persona presets (buyer / rental-yield investor / commercial), weighted **geometric** mean. Clusters are contiguous blocks in the top 8% of cells.
+* **Years**: `proximity.years` in `config/cities.yaml`; lines open per `config/metro/<city>.yaml`. Stretch can use drive (free-flow), drive (peak) or drive + metro (peak).
+* Outputs: `web/data/<city>/proximity.json`, `outputs/<city>_proximity.csv` (ranked clusters per persona).
+
+Assumptions to challenge (all in config): peak road speed = 60 % of free-flow, SEZ mass 3000 headcount-units for an IT/ITES SEZ,
+half-lives 15 min (work) / 10 min (lifestyle). **`config/metro/pune.yaml` is an unverified draft**: OSM tags Line 3 as open
+subway although it is under construction, so opening years come from that file, and each line is modelled as fully open from its first year.
+
 ## Concept notes (read before trusting a number)
 
 1. **Which way "inflated" points depends on the data.** With free-flow speeds the dense, well-connected
@@ -91,7 +107,7 @@ run them in parallel (a CI matrix over `--city`). Cut per-city PBFs from state e
 
 ## Tests
 
-`python -m pytest tests` covers fixed-scale MDS, fold-free fields, one-way routing, speed scenarios,
+`python -m pytest tests` covers the metro graph (opening years, transfers), office/lifestyle weights, SEZ mass, composite scoring, fixed-scale MDS, fold-free fields, one-way routing, speed scenarios,
 accessibility, percentile comparability and clustering.
 
 ## Legacy

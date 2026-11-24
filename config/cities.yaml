@@ -23,3 +23,17 @@ cities:
       # - {id: osm-2018, label: "OSM 2018", pbf: data/snapshots/pune-2018.osm.pbf}
       # Time-of-day or traffic-API matrices on the same grid (minutes, n x n .npy):
       # - {id: am-peak, label: "Weekday 09:00", matrix: data/pune-0900.npy}
+    proximity:
+      metro_file: config/metro/pune.yaml          # DRAFT/UNVERIFIED line openings, edit before relying on it
+      sez_csv: config/external/sez_india_277.csv  # from rajgpawar21/india-sez-atlas (locality-level coordinates)
+      sez_mass: 3000                              # headcount proxy of a full-weight (IT/ITES) SEZ; assumption
+      peak_speed_factor: 0.6                      # peak-hour road speed as a share of free-flow; assumption
+      half_life_work: 15                          # minutes
+      job_horizon_min: 45                         # horizon for the metro-premium jobs-reach measure
+      cluster_quantile: 0.92                      # micro-market = contiguous cells in the top 8% of the composite
+      half_life_lifestyle: 10
+      years:
+        - {id: y2021, label: "2021 (before metro)", year: 2021}
+        - {id: y2023, label: "2023", year: 2023}
+        - {id: y2026, label: "2026 (current)", year: 2026}
+        - {id: y2028, label: "Planned: Line 3 opens", year: 2028, scenario: true}
