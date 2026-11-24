@@ -1,0 +1,87 @@
+{
+ "key": "pune-whatif",
+ "name": "Pune \u00b7 what-if demo",
+ "tier": 1,
+ "display": [
+  -14.862151467836464,
+  -14.153472000000146,
+  14.862151467836462,
+  14.153471999999756
+ ],
+ "core": [
+  -11.611055834247237,
+  -11.057400000000158,
+  11.611055834247235,
+  11.057399999999767
+ ],
+ "ref_speed_kmh": 13.535845431133456,
+ "grid_km": 1.0,
+ "snapshots": [
+  {
+   "id": "base",
+   "label": "Baseline",
+   "scenario": false,
+   "median_trip_min": 43.65662937833075,
+   "smoothing": 25.0,
+   "alpha": 1.0,
+   "min_jacobian": 0.2908493234630714,
+   "fidelity": {
+    "spearman_map": 0.9574122107407308,
+    "spearman_geo": 0.9295267358127023,
+    "bands_km": [
+     {
+      "band": "0-3",
+      "err_map": 0.30902953299821795,
+      "err_geo": 0.21113892688623997
+     },
+     {
+      "band": "3-8",
+      "err_map": 0.15246003830005203,
+      "err_geo": 0.18255592552143057
+     },
+     {
+      "band": "8-+",
+      "err_map": 0.08439375992537863,
+      "err_geo": 0.23883896050675008
+     }
+    ]
+   }
+  },
+  {
+   "id": "arterials",
+   "label": "What-if: faster arterials",
+   "scenario": true,
+   "median_trip_min": 37.58023828912336,
+   "smoothing": 100.0,
+   "alpha": 1.0,
+   "min_jacobian": 0.2818787811605934,
+   "fidelity": {
+    "spearman_map": 0.9333177010146267,
+    "spearman_geo": 0.9037362998783957,
+    "bands_km": [
+     {
+      "band": "0-3",
+      "err_map": 0.30961941285498534,
+      "err_geo": 0.22550645482616988
+     },
+     {
+      "band": "3-8",
+      "err_map": 0.15280000226402496,
+      "err_geo": 0.31397601426586497
+     },
+     {
+      "band": "8-+",
+      "err_map": 0.10714782727746593,
+      "err_geo": 0.43908163794159805
+     }
+    ]
+   }
+  }
+ ],
+ "half_life_min": 10.0,
+ "score_threshold": 0.75,
+ "lonlat0": [
+  73.86,
+  18.520000000000003
+ ]
+}

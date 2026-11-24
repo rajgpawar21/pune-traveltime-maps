@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Travel-Time Maps · micro-market signals</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="map" aria-label="Travel-time map"></canvas>
+
+<aside id="panel">
+  <header>
+    <div>
+      <h1>Travel-Time Maps</h1>
+      <p class="sub">Where the city is close in <em>time</em>, not kilometres</p>
+    </div>
+    <button id="collapse" aria-label="Collapse panel" title="Collapse">–</button>
+  </header>
+  <div id="body">
+    <label class="row"><span>City</span><select id="city"></select></label>
+
+    <section>
+      <div class="lab"><span>Stretch</span><output id="stretchOut">100%</output></div>
+      <input id="stretch" type="range" min="0" max="100" value="100">
+      <div class="ends"><span>Geographic</span><span>Travel-time</span></div>
+      <button id="stretchPlay" class="ghost">▶ Animate stretch</button>
+    </section>
+
+    <section id="timeSec">
+      <div class="lab"><span>Time</span><output id="snapOut"></output></div>
+      <input id="snap" type="range" min="0" max="0" step="0.01" value="0">
+      <div id="snapTicks" class="ends"></div>
+      <div id="scenarioBadge" hidden>What-if scenario, not observed history</div>
+      <button id="snapPlay" class="ghost">▶ Play time</button>
+    </section>
+
+    <section>
+      <div class="lab"><span>Layer</span></div>
+      <div id="modes" role="radiogroup">
+        <label><input type="radio" name="mode" value="map" checked><span>Map only</span></label>
+        <label><input type="radio" name="mode" value="inflation"><span>Inflation</span></label>
+        <label><input type="radio" name="mode" value="micro"><span>Micro-markets</span></label>
+        <label><input type="radio" name="mode" value="change"><span>Change over time</span></label>
+      </div>
+      <label id="metricRow" class="row" hidden><span>Measure</span>
+        <select id="metric">
+          <option value="M">Micro-market score</option>
+          <option value="acc">Accessibility to activity</option>
+          <option value="act">Activity (POI + buildings)</option>
+        </select>
+      </label>
+      <div id="legend"></div>
+    </section>
+
+    <section class="checks">
+      <label><input id="ghost" type="checkbox" checked><span>Ghost of geographic roads</span></label>
+      <label><input id="labels" type="checkbox" checked><span>Place labels</span></label>
+    </section>
+
+    <section id="listSec" hidden>
+      <div class="lab"><span id="listTitle">Top micro-markets</span></div>
+      <ol id="list"></ol>
+    </section>
+
+    <details id="about">
+      <summary>How to read this map</summary>
+      <div id="aboutBody"></div>
+    </details>
+  </div>
+</aside>
+
+<div id="tip" hidden></div>
+<div id="scale"><div id="scaleBar"></div><span id="scaleText"></span></div>
+<div id="zoom">
+  <button id="zin" aria-label="Zoom in">+</button>
+  <button id="zout" aria-label="Zoom out">–</button>
+  <button id="zreset" aria-label="Reset view" title="Reset view">⌂</button>
+</div>
+<div id="credit">Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors</div>
+<div id="loading">Loading…</div>
+<script src="app.js"></script>
+</body>
+</html>
