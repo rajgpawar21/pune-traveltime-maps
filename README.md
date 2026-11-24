@@ -1,6 +1,6 @@
 # Travel-time maps & micro-market signals (India T1/T2)
 
-**[Open the interactive map](https://rajgpawar21.github.io/pune-traveltime-maps/web/)**
+**[Open the interactive map](https://rajgpawar21.github.io/pune-traveltime-maps/explorer/)**
 
 Reshape a city by **how long it takes to get around**, track how that changes over time, and
 use the result to find *micro-markets*: active neighbourhoods that are also quickly reachable
@@ -10,6 +10,9 @@ from other active neighbourhoods.
 python -m traveltime.build --city pune          # ~30 s per snapshot, no Docker needed
 cd web && python -m http.server 8000            # open http://localhost:8000
 ```
+
+The hosted copy is published to `gh-pages` under `/explorer/` by `.github/workflows/publish-explorer.yml`
+(runs on merge to `main` when `web/` changes, or manually from the Actions tab).
 
 ## What changed from v1 (raster warp)
 
