@@ -145,3 +145,17 @@ def osrm_matrix(grid_lonlat, url=None, profile="driving", block=50, timeout=120)
                     time.sleep(2 ** attempt)
     np.fill_diagonal(out, 0.0)
     return out / 60.0
+
+
+def od_minutes(g, snap_node, snap_km):
+    """Minutes OD matrix on any graph whose first nodes are road nodes (snap_node indexes them)."""
+    n = len(snap_node)
+    uniq, inv = np.unique(snap_node, return_inverse=True)
+    block = np.empty((len(uniq), len(uniq)))
+    for lo in range(0, len(uniq), 64):
+        d = dijkstra(g, directed=True, indices=uniq[lo:lo + 64])
+        block[lo:lo + 64] = d[:, uniq]
+    access_s = snap_km / ACCESS_SPEED_KMH * 3600.0
+    out = block[np.ix_(inv, inv)] + access_s[:, None] + access_s[None, :]
+    np.fill_diagonal(out, 0.0)
+    return out / 60.0

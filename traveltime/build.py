@@ -10,7 +10,7 @@ import numpy as np
 import shapely
 import yaml
 
-from . import embed, metrics, router
+from . import embed, metrics, proximity, router
 from .geo import make_grid, projection_for
 from .osm_scan import cached_scan
 
@@ -202,8 +202,12 @@ def build_city(key, cfg, defaults, router_kind, out_web: Path, out_csv: Path):
         "key": key, "name": cfg["name"], "tier": cfg.get("tier"), "display": display, "core": core,
         "ref_speed_kmh": v_ref, "grid_km": cfg["grid_km"], "snapshots": meta_snaps,
         "half_life_min": cfg["half_life_min"], "score_threshold": cfg["score_threshold"],
-        "lonlat0": [proj.lon0, proj.lat0],
+        "lonlat0": [proj.lon0, proj.lat0], "has_proximity": bool(cfg.get("proximity")),
     }, indent=1))
+
+    if cfg.get("proximity"):
+        proximity.build(key, cfg, proj, grid_xy, cell, nx_, ny_, valid, v_ref, lattice, core, pad, base_scan,
+                        city_dir, out_csv, ROOT)
 
     # ---- ranked micro-market table
     out_csv.mkdir(parents=True, exist_ok=True)

@@ -1,0 +1,28 @@
+# Pune Metro lines. DRAFT, UNVERIFIED: please correct `opened` years and statuses before relying on the timeline.
+# Station and track GEOMETRY comes from OpenStreetMap; this file only says which OSM ways/stations belong to which
+# line, and when each line is considered in service. OSM's own open/construction tags are not used (Line 3 is
+# mapped as open subway in OSM even though it is still being built).
+#
+# Limitation: sections opened in stages (e.g. Purple/Aqua in 2022, then extended). Each line is modelled as fully in
+# service from `opened`, which overstates the earliest years. Use `station_open` to fix this per station.
+city: pune
+lines:
+  - id: purple
+    name: "Purple Line (Line 1)"
+    color: "#a66cff"
+    match: ["Purple", "Line 1"]
+    status: open
+    opened: 2022
+  - id: aqua
+    name: "Aqua Line (Line 2)"
+    color: "#2ec4f1"
+    match: ["Aqua", "Line 2"]
+    status: open
+    opened: 2022
+  - id: pink
+    name: "Pink Line (Line 3, Hinjawadi-Shivajinagar)"
+    color: "#ff6fb5"
+    match: ["Pink", "Line 3"]
+    status: construction   # assumed planned opening year; placeholder
+    opened: 2028
+    # station_open: {"Shivajinagar": 2028}   # optional per-station overrides

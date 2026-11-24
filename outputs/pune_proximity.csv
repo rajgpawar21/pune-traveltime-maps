@@ -1,0 +1,7 @@
+persona,cluster,areas,cells,area_km2,lat,lon,score,delta_vs_first,work,lifestyle,metro,year
+buyer,1,Mangalwar Peth; Somwar Peth; Kasba Peth,36,36.5,18.52505,73.86186,0.741,0.456,0.886,0.92,0.484,2026 (current)
+buyer,2,Mandalay Lines,5,5.1,18.55909,73.8447,0.699,0.416,0.894,0.866,0.409,2026 (current)
+commercial,1,Somwar Peth; Mangalwar Peth; Kasba Peth,36,36.5,18.52758,73.86691,0.793,0.365,0.918,0.93,0.442,2026 (current)
+commercial,2,Mandalay Lines,4,4.1,18.55864,73.84565,0.759,0.347,0.893,0.868,0.423,2026 (current)
+investor,1,Somwar Peth; Mangalwar Peth; Kasba Peth,36,36.5,18.52606,73.86399,0.738,0.452,0.895,0.921,0.476,2026 (current)
+investor,2,Mandalay Lines,5,5.1,18.55909,73.8447,0.701,0.417,0.894,0.866,0.409,2026 (current)
