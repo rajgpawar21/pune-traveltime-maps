@@ -1,5 +1,7 @@
 # Travel-time maps & micro-market signals (India T1/T2)
 
+**[Open the interactive map](https://rajgpawar21.github.io/pune-traveltime-maps/web/)**
+
 Reshape a city by **how long it takes to get around**, track how that changes over time, and
 use the result to find *micro-markets*: active neighbourhoods that are also quickly reachable
 from other active neighbourhoods.
