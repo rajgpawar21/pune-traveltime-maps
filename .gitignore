@@ -8,7 +8,8 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 # Generated map and modelling outputs
-data/
+/data/
+.cache/
 map.png
 map_bounds.json
 coordinates.npy

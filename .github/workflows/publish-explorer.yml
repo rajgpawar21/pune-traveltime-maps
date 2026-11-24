@@ -1,0 +1,30 @@
+name: Publish interactive explorer
+
+# Publishes the static viewer in web/ (including its pre-built data) to
+# https://<user>.github.io/<repo>/explorer/ on the gh-pages branch.
+# keep_files leaves the legacy site and its map history untouched.
+on:
+  push:
+    branches: [main]
+    paths: ["web/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gh-pages-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: web
+          destination_dir: explorer
+          keep_files: true
