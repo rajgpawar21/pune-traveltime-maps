@@ -1,0 +1,5 @@
+cluster,areas,cells,area_km2,lat,lon,micro_market_score,delta_score,delta_accessibility,delta_activity,mean_inflation_J
+1,Sahakar Nagar; Dattawadi; Swargate,71,72.1,18.49484,73.84882,0.863,,,,0.59
+4,Kaspate Vasti; Pawar Nagar; Kaverinagar,3,3.0,18.59727,73.7771,0.831,,,,0.61
+2,Aundh; Marutrao Gaikwad nagar; Sindh Colony,13,13.2,18.56441,73.80997,0.83,,,,0.66
+3,Kharadi; Ramwadi; Viman Nagar,3,3.0,18.55788,73.93333,0.772,,,,0.66

@@ -1,115 +1,97 @@
-# Pune Travel-Time Maps
+# Travel-time maps & micro-market signals (India T1/T2)
 
-An interactive travel-time cartogram of Pune, India. Instead of treating every kilometre as equal, the project uses driving durations from OpenStreetMap's routing engine (OSRM) to reposition a regular grid of locations. The output is an interactive Leaflet map with the original raster, distorted cartogram, and sampling-point layers.
+Reshape a city by **how long it takes to get around**, track how that changes over time, and
+use the result to find *micro-markets*: active neighbourhoods that are also quickly reachable
+from other active neighbourhoods.
 
-Adapted from [carstonhernke/traveltime-maps](https://github.com/carstonhernke/traveltime-maps).
-
-## What the pipeline does
-
-1. **Download the basemap** — `distance_maps/get_map.py` downloads a 9×9 mosaic of OpenStreetMap tiles around Pune (18.53744°N, 73.86652°E, zoom 14). It records the exact Web Mercator geographic bounds in `map_bounds.json`.
-2. **Create the sampling grid** — `distance_maps/generate_coordinates.py` creates 81 points in a 9×9 north-to-south, west-to-east grid across Pune.
-3. **Calculate driving durations** — `distance_maps/get_travel_times.py` calls the OSRM Table service once to request the full 81×81 duration matrix. Unreachable pairs remain missing values, not arbitrary sentinel durations.
-4. **Embed the network** — `distance_maps/mds.py` symmetrises reciprocal travel durations for classical metric MDS, applies a documented penalty when both directions are unreachable, and aligns the resulting two-dimensional embedding to geographic orientation.
-5. **Warp and publish** — `distance_maps/distort_map.py` performs inverse image mapping for OpenCV's `remap` and writes an interactive Leaflet HTML map.
-
-The directional OSRM matrix is retained in `travel_times.npy`. MDS requires symmetric dissimilarities, so reciprocal durations are averaged when both directions exist. If only one direction exists, that observed duration is used. If neither direction exists, the pair receives a penalty above the largest observed duration. These choices are modelling assumptions, not claims that road travel is truly symmetric.
-
-## Interactive output
-
-After a successful run, open `pune_travel_time_map.html` in a browser. Keep the generated `img/` directory beside the HTML file.
-
-- Switch between the OpenStreetMap basemap, original raster, and travel-time cartogram.
-- Toggle the 81 sampling points and inspect their coordinates.
-- Adjust the cartogram overlay opacity.
-- Zoom and pan using Leaflet.
-
-The HTML references Leaflet from unpkg and OpenStreetMap tiles, so an internet connection is needed to view the interactive map. The generated PNGs are retained as supporting outputs, not the final interface.
-
-## Requirements
-
-- Python 3.10 or later
-- Docker Desktop (for a local OSRM routing server)
-- Internet access to download OSM tiles and view the Leaflet map
-
-Install Python dependencies:
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-pip install -r requirements.txt
+```
+python -m traveltime.build --city pune          # ~30 s per snapshot, no Docker needed
+cd web && python -m http.server 8000            # open http://localhost:8000
 ```
 
-## Prepare the OSRM routing server
+## What changed from v1 (raster warp)
 
-Download a Pune-area OSM extract in PBF format from [BBBike Extracts](https://extract.bbbike.org/) and save it as `data/pune-latest.osm.pbf`. Then run these commands from the repository root:
+| v1 problem | Cause | Fix |
+|---|---|---|
+| Text rotated, sheared, resized, edges smeared | A *picture* of OSM tiles was warped with a triangulation of ~89 points; `BORDER_REPLICATE` smeared the margins | Nothing raster is warped. Roads, water and parks are **vector** geometry warped vertex-by-vertex by a smooth field; labels are placed afterwards in screen space, always horizontal, constant size, collision-checked |
+| No way to compare with the normal map | Separate layers | **Stretch slider**: 0 % = geographic, 100 % = travel-time, continuous in between; optional ghost of the geographic roads |
+| Fixed Leaflet image overlay | Overlay can't be re-projected | Own canvas viewer with wheel / pinch / drag / double-click zoom, level-of-detail by zoom |
+| One snapshot | — | N snapshots in a shared frame (see below), **time slider**, delta layers |
+| Per-run min-max rescaling | `MinMaxScaler` on every run | **Fixed scale**: map distance = km at a reference speed, identical across snapshots, so differences are real |
+| Warp could fold | No check | Warp field is a thin-plate spline, **checked for negative Jacobian** and smoothed until fold-free |
 
-```bash
-mkdir -p data
-docker run -t -v "$(pwd)/data:/data" osrm/osrm-backend osrm-extract \
-  -p /opt/car.lua /data/pune-latest.osm.pbf
-docker run -t -v "$(pwd)/data:/data" osrm/osrm-backend osrm-partition \
-  /data/pune-latest.osrm
-docker run -t -v "$(pwd)/data:/data" osrm/osrm-backend osrm-customize \
-  /data/pune-latest.osrm
-docker run -t -i -p 5001:5000 -v "$(pwd)/data:/data" osrm/osrm-backend \
-  osrm-routed --algorithm mld /data/pune-latest.osrm
+## Pipeline
+
+`osm_scan` (one pass over the PBF: roads, rail/metro, water, parks, places, POIs, buildings)
+→ `router` (free-flow graph router, or OSRM, or your own matrix) → `embed` (1/d-weighted SMACOF
+MDS in fixed units, aligned to the baseline frame, TPS field) → `metrics` (activity, gravity
+accessibility, micro-market score, clusters) → `web/data/<city>/` + `outputs/<city>_micromarkets.csv`.
+
+### Time series
+
+Add snapshots to `config/cities.yaml`; every snapshot uses the **same grid and the same scale**.
+
+```yaml
+snapshots:
+  - {id: osm-2018, label: "OSM 2018", pbf: data/snapshots/pune-2018.osm.pbf}
+  - {id: osm-2022, label: "OSM 2022", pbf: data/snapshots/pune-2022.osm.pbf}
+  - {id: osm-2026, label: "OSM 2026", pbf: data/pune-latest.osm.pbf}
+  - {id: am-peak,  label: "Weekday 09:00", matrix: data/pune-0900.npy}   # n×n minutes, same grid
 ```
 
-The container listens on port 5000 internally and is exposed on **localhost:5001**. The Python pipeline uses `http://localhost:5001` by default. If your server uses a different address, set `OSRM_URL`, for example:
+* **Infrastructure history**: re-route older OSM snapshots (Geofabrik history/internal extracts,
+  Overpass `[date:…]`, ohsome). Metro lines, flyovers and ring roads show up as connectivity change.
+* **Congestion**: supply peak/off-peak matrices from a traffic API (TomTom, HERE, Google, Mapbox). See "Concept notes".
+* **Scenarios**: `speed_scale: {primary: 1.4}` for what-ifs (flagged in the UI). `config/examples_whatif.yaml` is a demo of this, **not real history**.
 
-```bash
-export OSRM_URL=http://localhost:5001
-```
+### Colour theory of the change layer
 
-## Run the full pipeline
+Borrowed from [night-time-lights](https://github.com/rajgpawar21/night-time-lights): a temporal RGB
+composite where **R = earliest, G = middle, B = latest** snapshot. White = persistently strong,
+blue/cyan = new, red = fading, black = nothing (transparent). Differences are amplified ×5 around each
+cell's own mean because change is small next to the spread across the city. The inflation layer
+deliberately uses a different palette (teal ↔ orange) so the two meanings never mix.
 
-With the OSRM container running, open a second terminal at the repository root:
+### Micro-market score
 
-```bash
-source .venv/bin/activate
-python main.py
-```
+`M = sqrt( pct(activity) × pct(accessibility to *other* active cells) )`, where
+accessibility = `log1p Σ_j activity_j · 2^(−t_ij / half_life)` (gravity model, 10-min half-life) and
+percentiles are taken against the **first snapshot**, so growth can exceed the baseline. Clusters are
+contiguous 8-neighbour blocks of cells with `M ≥ threshold`. The CSV ranks clusters by Δscore when
+there are ≥ 2 snapshots (otherwise by score).
 
-You can also run each stage independently:
+## Concept notes (read before trusting a number)
 
-```bash
-python distance_maps/get_map.py
-python distance_maps/generate_coordinates.py
-python distance_maps/get_travel_times.py
-python distance_maps/mds.py
-python distance_maps/distort_map.py
-```
+1. **Which way "inflated" points depends on the data.** With free-flow speeds the dense, well-connected
+   core is *compressed* (everything is close) and the periphery inflates. "Busy neighbourhoods inflate"
+   is a *congestion* effect and only appears with peak-hour traffic matrices. Activity and inflation are
+   therefore kept as separate layers; the micro-market score uses activity × connectivity, which is
+   robust to either.
+2. **Fidelity is regional, not street-level.** Pune: map error vs travel time is 8 % beyond 8 km (plain
+   geography: 24 %), 15 % at 3–8 km (18 %), but **31 % under 3 km (21 %)**: river crossings, one-ways and barriers can't
+   be embedded in 2-D. Read neighbourhoods, not blocks. Per-snapshot numbers are in `meta.json`.
+3. **OSM activity trends are biased.** POI/building counts grow as mapping effort grows. Before
+   believing a rising micro-market, cross-check with independent growth signals (VIIRS night lights,
+   Google Open Buildings temporal, registrations) and **back-test against price data**: does Δscore at
+   t₀ predict appreciation to t₁? Until it does, treat the ranking as hypotheses, not a signal.
+4. The built-in router is free-flow with a 4 s junction delay, no turn costs, no traffic. Use OSRM
+   (`--router osrm`, chunked tables) if you want a specific engine's behaviour.
 
-## Main outputs
+## Scaling to all T1/T2 cities
 
-| File | Purpose |
-|---|---|
-| `map.png` | Stitched OSM source raster |
-| `map_bounds.json` | Exact geographic bounds of the raster |
-| `coordinates.npy` / `coordinates.csv` | 81 sampling locations |
-| `travel_times.npy` | Directed OSRM duration matrix in seconds |
-| `new_coordinates.npy` | MDS cartogram control points |
-| `img/original_map_pune.png` | Original map image |
-| `img/distorted_map_pune.png` | Travel-time-distorted image |
-| `pune_travel_time_map.html` | Interactive map (open this file) |
+Add one block per city to `config/cities.yaml` (`bbox`, `tier`, snapshots). Cities are independent, so
+run them in parallel (a CI matrix over `--city`). Cut per-city PBFs from state extracts with
+`osmium extract -b W,S,E,N`. ~500 cells and one snapshot take ~30 s; 0.5 km grids for dense cores are ~4× cells.
+`web/data/index.json` feeds the city selector automatically.
 
-Generated data and images are local outputs and should not be committed unless intentionally needed for a reproducible release.
+## Tests
 
-## Important assumptions and limitations
+`python -m pytest tests` covers fixed-scale MDS, fold-free fields, one-way routing, speed scenarios,
+accessibility, percentile comparability and clustering.
 
-- The 81-point grid is a coarse spatial sample, not a routing model for every address in Pune.
-- OSRM driving times depend on the downloaded OSM extract, routing profile, road network completeness, and any traffic assumptions in the routing data. This pipeline does not model live traffic.
-- A symmetric MDS map cannot preserve one-way travel-time asymmetry. Reciprocal durations are averaged as described above.
-- Missing route pairs are penalised for embedding; inspect the reported unreachable-pair count before interpreting the map.
-- MDS is a low-dimensional approximation. It does not guarantee that every pairwise travel duration is preserved exactly.
-- The HTML overlay uses the exact bounds of the source OSM raster. The cartogram is a visual transformation of that raster, not a navigable street map in the transformed coordinate system. Use the original OSM layer for geographic navigation.
-- OpenStreetMap tile usage is subject to the [tile usage policy](https://operations.osmfoundation.org/policies/tiles/). The script uses a descriptive User-Agent and downloads only a small mosaic.
+## Legacy
 
-## Attribution
+`distance_maps/`, `main.py`, `PCoA.R`, `site/` and `worker/` are the v1 raster pipeline and its
+GitHub-Actions generator UI, left untouched (deps in `requirements-legacy.txt`).
 
-© [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors. Routing is provided locally by [OSRM](https://project-osrm.org/). This project is an educational visualisation and is not affiliated with either project.
-
-## Legacy file
-
-`PCoA.R` is retained only as a historical reference. The current pipeline runs MDS in Python and does not require R or manually exchanging CSV files.
+Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors (ODbL).

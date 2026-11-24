@@ -1,0 +1,25 @@
+# One entry per city. Add all T1/T2 cities here; the pipeline is per-city and
+# embarrassingly parallel (see README "Scaling to all T1/T2 cities").
+defaults:
+  grid_km: 1.0            # sampling spacing; use 0.5 for dense cores
+  half_life_min: 10.0     # gravity decay: accessibility halves every 10 min
+  score_threshold: 0.75   # micro-market score cut-off (percentile-based, 0-1)
+  min_cluster_cells: 3
+  smacof_alpha: 1.0       # 1/d weighting (local emphasis); 0 = classic MDS
+  off_network_km: 1.5     # grid points further than this from a road are masked
+
+cities:
+  pune:
+    name: Pune
+    tier: 1
+    bbox: [73.75, 18.42, 73.97, 18.62]      # west, south, east, north
+    scan_margin: [73.65, 18.32, 74.07, 18.72]
+    snapshots:
+      - id: osm-2026
+        label: "OSM extract (current)"
+        pbf: data/pune-latest.osm.pbf
+      # Real history: add one PBF per year, same grid. Examples:
+      # - {id: osm-2022, label: "OSM 2022", pbf: data/snapshots/pune-2022.osm.pbf}
+      # - {id: osm-2018, label: "OSM 2018", pbf: data/snapshots/pune-2018.osm.pbf}
+      # Time-of-day or traffic-API matrices on the same grid (minutes, n x n .npy):
+      # - {id: am-peak, label: "Weekday 09:00", matrix: data/pune-0900.npy}

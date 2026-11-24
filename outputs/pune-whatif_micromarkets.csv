@@ -1,0 +1,4 @@
+cluster,areas,cells,area_km2,lat,lon,micro_market_score,delta_score,delta_accessibility,delta_activity,mean_inflation_J
+2,Tingrenagar; Vishrantwadi; Dhanori,5,5.1,18.57909,73.88678,0.807,0.141,0.286,0.0,0.52
+3,Gopalpatti,4,4.1,18.49955,73.93891,0.801,0.124,0.243,0.0,0.52
+1,Deccan Gymkhana; Narayan Peth; Shaniwar Peth,144,146.1,18.52038,73.84233,0.866,0.069,0.226,0.0,0.49
