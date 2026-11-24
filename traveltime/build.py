@@ -103,6 +103,8 @@ def build_city(key, cfg, defaults, router_kind, out_web: Path, out_csv: Path):
     snaps = []
     for s in cfg["snapshots"]:
         scan = None
+        if s.get("pbf") and not (ROOT / s["pbf"]).exists():
+            raise SystemExit(f"[{key}] missing {s['pbf']}. See scripts/prepare_city.sh for how to create it.")
         if s.get("pbf"):
             scan = cached_scan(ROOT / s["pbf"], ROOT / ".cache" / key, cfg.get("scan_margin"))
         if s.get("matrix"):

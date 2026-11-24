@@ -23,3 +23,13 @@ cities:
       # - {id: osm-2018, label: "OSM 2018", pbf: data/snapshots/pune-2018.osm.pbf}
       # Time-of-day or traffic-API matrices on the same grid (minutes, n x n .npy):
       # - {id: am-peak, label: "Weekday 09:00", matrix: data/pune-0900.npy}
+
+  bengaluru:
+    name: Bengaluru
+    tier: 1
+    bbox: [77.50, 12.86, 77.76, 13.08]       # ORR / core; ~28 x 24 km
+    scan_margin: [77.40, 12.76, 77.86, 13.18]
+    snapshots:
+      - id: osm-2026
+        label: "OSM extract (current)"
+        pbf: data/bengaluru-latest.osm.pbf
